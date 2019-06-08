@@ -3,18 +3,24 @@ using System;
 
 public class Player : KinematicBody2D
 {
-    private static readonly Vector2 Gravity = new Vector2(0, 900);
+    private static readonly Vector2 Gravity = new Vector2(0, 1200);
     private static readonly Vector2 FloorNormal = new Vector2(0, -1);
     private static readonly Vector2 FaceLeftScale = new Vector2(-1, 1);
     private static readonly Vector2 FaceRightScale = new Vector2(1, 1);
     // private const float SlopeSlideStop = 25f;
     private const float SidingChangeSpeed = 10;
 
-    public float WalkSpeed = 400;
-    public float JumpSpeed = 600;
+    [Export] public float WalkSpeed = 400;
+
+    // Jumping parameters
+    [Export] public float InitialJumpImpulse = 400;
+    [Export] public float AdditionalJumpImpulse = 20;
+    [Export] public int MaxAdditionalJumpImpulses = 20;
 
     private Vector2 linearVelocity = new Vector2();
     private string animation = "";
+    private bool isJumping = false;
+    private int additionalJumpImpulsesCount = 0;
 
     private AnimatedSprite sprite;
 
@@ -35,6 +41,8 @@ public class Player : KinematicBody2D
 
         bool onFloor = IsOnFloor();
 
+        isJumping = onFloor ? true : isJumping;
+
         // Calculate next horizontal movement
         float targetSpeed = 0;
         if (Input.IsActionPressed("move_left")) { targetSpeed = -1; }
@@ -43,10 +51,20 @@ public class Player : KinematicBody2D
         targetSpeed *= WalkSpeed;
         linearVelocity.x = Mathf.Lerp(linearVelocity.x, targetSpeed, 0.5f);
 
-        // Jumping
+        // When already jumped, apply additional impulse if action is still pressed.
+        if (isJumping && Input.IsActionPressed("jump")
+            && additionalJumpImpulsesCount < MaxAdditionalJumpImpulses)
+        {
+            linearVelocity.y -= AdditionalJumpImpulse;
+            additionalJumpImpulsesCount++;
+        }
+
+        // Start jumping
         if (onFloor && Input.IsActionJustPressed("jump"))
         {
-            linearVelocity.y = -JumpSpeed;
+            linearVelocity.y = -InitialJumpImpulse;
+            isJumping = true;
+            additionalJumpImpulsesCount = 0;
         }
 
         // Animation
